@@ -125,7 +125,7 @@ renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.15;
+renderer.toneMappingExposure=1.0;
 document.body.appendChild(renderer.domElement);
 
 const scene=new THREE.Scene();
@@ -135,7 +135,7 @@ const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.1,300);
 
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
-const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.85,0.55,0.62);
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.5,0.4,0.8);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -150,8 +150,10 @@ const MAT={
   glass :{gi:new THREE.MeshPhysicalMaterial({color:0x9fc4e0,roughness:.06,transmission:1,thickness:1.6,ior:1.45,
              attenuationColor:new THREE.Color(0x7fb0d8),attenuationDistance:6}),
           raw:new THREE.MeshStandardMaterial({color:0x2c2c33,roughness:.6,transparent:true,opacity:.55})},
-  ember :{gi:new THREE.MeshStandardMaterial({color:0x1a0f06,emissive:0xff7a1a,emissiveIntensity:2.4}),
-          raw:new THREE.MeshStandardMaterial({color:0x241408,emissive:0xff7a1a,emissiveIntensity:1.2})},
+  ember :{gi:new THREE.MeshStandardMaterial({color:0x1a0f06,emissive:0xff7a1a,emissiveIntensity:.9}),
+          raw:new THREE.MeshStandardMaterial({color:0x241408,emissive:0xff7a1a,emissiveIntensity:.7})},
+  strip :{gi:new THREE.MeshStandardMaterial({color:0x140d06,emissive:0xff7a1a,emissiveIntensity:.35}),
+          raw:new THREE.MeshStandardMaterial({color:0x1c140c,emissive:0xff7a1a,emissiveIntensity:.25})},
   hide  :{gi:new THREE.MeshStandardMaterial({color:0x33333b,roughness:1}),
           raw:new THREE.MeshStandardMaterial({color:0x2f2f38,roughness:.9,emissive:0xff7a1a,emissiveIntensity:.12})},
 };
@@ -182,8 +184,8 @@ B(0,-1,0,44,1,44,'stone',{shadow:false});
 B(0,0,-62,128,14,3,'dark'); B(0,0,62,128,14,3,'dark');
 B(-62,0,0,3,14,128,'dark'); B(62,0,0,3,14,128,'dark');
 [[16,-16],[-16,-16],[16,16],[-16,16]].forEach(([x,z])=>B(x,0,z,3,9,3,'dark'));
-[[0,-14,1.2,.12,8],[14,0,8,.12,1.2],[-14,0,8,.12,1.2],[0,14,1.2,.12,8]].forEach(([x,z,w,h,d])=>
-  B(x,0.001,z,w,h,d,'ember',{ghost:true,shadow:false}));
+[[0,-14,.5,.05,8],[14,0,8,.05,.5],[-14,0,8,.05,.5],[0,14,.5,.05,8]].forEach(([x,z,w,h,d])=>
+  B(x,0.001,z,w,h,d,'strip',{ghost:true,shadow:false}));
 
 /* TEMPLE OF LIGHT (north) */
 B(0,-1,-35,34,1,30,'stone',{shadow:false});
@@ -306,19 +308,19 @@ function rayCone(x,y,z,r,h,color,op){
   m.position.set(x,y,z); scene.add(m); return m;
 }
 const giOnly=[
-  rayCone(-6,7,-41,1.6,9,0xffc98a,.10), rayCone(0,7,-41,1.6,9,0xffc98a,.10), rayCone(6,7,-41,1.6,9,0xffc98a,.10),
-  rayCone(0,8,-59,3,11,0xffb26b,.16), rayCone(35,7,-6,2,10,0x9fc4e0,.07),
+  rayCone(-6,7,-41,1.6,9,0xffc98a,.05), rayCone(0,7,-41,1.6,9,0xffc98a,.05), rayCone(6,7,-41,1.6,9,0xffc98a,.05),
+  rayCone(0,8,-59,3,11,0xffb26b,.07), rayCone(35,7,-6,2,10,0x9fc4e0,.04),
 ];
 
 /* ============ photons ============ */
 const photonGeo=new THREE.SphereGeometry(.22,20,14);
-const photonMat=new THREE.MeshStandardMaterial({color:0x201204,emissive:0xffb26b,emissiveIntensity:3.4});
+const photonMat=new THREE.MeshStandardMaterial({color:0x201204,emissive:0xffb26b,emissiveIntensity:2.2});
 const photons=[];
 const P=[[0,1.2,10],[0,3.2,-36],[-6,3.2,-41],[6,3.2,-44],[32,1.2,-8],[49,4.4,16],[55,6.6,10],
          [-35,3.7,-14],[-28,1.2,8],[-44,2.4,10],[-6,-.2,28],[6,-.2,47]];
 for(const [x,y,z] of P){
   const m=new THREE.Mesh(photonGeo,photonMat); m.position.set(x,y,z);
-  const halo=rayCone(x,y,z,.5,1.6,0xffb26b,.22); halo.rotation.x=Math.PI;
+  const halo=rayCone(x,y,z,.5,1.6,0xffb26b,.1); halo.rotation.x=Math.PI;
   scene.add(m); photons.push({m,halo,got:false,ph:Math.random()*6.28,base:y});
 }
 const TOTAL=photons.length;
@@ -390,7 +392,7 @@ function setMode(m){
   }
   wireGroup.visible=(m==='raw');
   for(const s of solids) if(s.hidden) s.mesh.visible=(m==='raw');
-  bloom.strength=(m==='gi')?.85:.12;
+  bloom.strength=(m==='gi')?.5:.1;
   scene.fog.color.set(m==='gi'?0x05060a:0x0c0c10);
   scene.background.set(m==='gi'?0x05060a:0x0c0c10);
   scene.fog.density=(m==='gi')?.026:.02;
